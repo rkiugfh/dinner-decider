@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dinner Decider</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15); /* More prominent shadow */
+            width: 100%;
+            max-width: 750px; /* Slightly wider */
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 24px; /* Space between sections */
+        }
+        h1 {
+            color: #2d3748; /* Darker gray for heading */
+            margin-bottom: 24px;
+        }
+        input[type="number"],
+        textarea { /* Removed select from here as it's custom styled now */
+            padding: 14px; /* Increased padding */
+            border-radius: 10px; /* More rounded */
+            border: 1px solid #cbd5e1;
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-size: 1rem; /* Slightly larger font */
+            background-color: #f8fafc; /* Light background for inputs */
+        }
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #4299e1; /* Blue-400 for focus */
+            box-shadow: 0 0 0 4px rgba(66, 153, 225, 0.3); /* Softer shadow */
+        }
+        label {
+            font-weight: 600;
+            margin-bottom: 10px; /* More space below labels */
+            color: #4a5568; /* Gray-700 */
+            display: block;
+            font-size: 1.05rem; /* Slightly larger label font */
+        }
+        .btn-primary {
+            background-color: #4299e1; /* Blue-400 */
+            color: white;
+            padding: 16px 28px; /* Larger buttons */
+            border-radius: 10px;
+            font-weight: 700; /* Bolder text */
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+            cursor: pointer;
+            width: 100%;
+            border: none;
+            box-shadow: 0 4px 10px rgba(66, 153, 225, 0.2);
+        }
+        .btn-primary:hover {
+            background-color: #3182ce; /* Blue-500 */
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 6px 15px rgba(66, 153, 225, 0.3);
+        }
+        .btn-primary:active {
+            background-color: #2b6cb0; /* Blue-600 */
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(66, 153, 225, 0.2);
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4299e1; /* Blue-400 */
+            border-radius: 50%;
+            width: 28px; /* Slightly larger spinner */
+            height: 28px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .question-step {
+            display: none;
+            width: 100%;
+            transition: opacity 0.5s ease-in-out; /* Smooth transition for steps */
+            opacity: 0;
+        }
+        .question-step.active {
+            display: block;
+            opacity: 1;
+        }
+        .navigation-buttons {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px; /* More space between buttons */
+            width: 100%;
+            margin-top: 30px; /* More space above buttons */
+        }
+        .navigation-buttons .btn {
+            flex: 1;
+            font-size: 1rem;
+        }
+        .btn-secondary {
+            background-color: #e2e8f0; /* Gray-200 */
+            color: #4a5568; /* Gray-700 */
+            padding: 16px 28px;
+            border-radius: 10px;
+            font-weight: 700;
+            transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 10px rgba(226, 232, 240, 0.5);
+        }
+        .btn-secondary:hover {
+            background-color: #cbd5e1; /* Gray-300 */
+            transform: translateY(-3px);
+            box-shadow: 0 6px 15px rgba(203, 213, 225, 0.7);
+        }
+        .btn-secondary:active {
+            background-color: #a0aec0; /* Gray-400 */
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(203, 213, 225, 0.5);
+        }
+        #suggestionOutput {
+            background-color: #e0f2f7; /* Lighter blue for output */
+            padding: 30px; /* More padding */
+            border-radius: 12px;
+            border: 1px solid #a7d9ee; /* Softer border */
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            color: #2d3748;
+            line-height: 1.8; /* Increased line height for readability */
+            font-size: 1.05rem;
+            margin-top: 40px; /* More space above output */
+            width: 100%;
+        }
+        #suggestionOutput h2 {
+            color: #2a69ac; /* Darker blue for output heading */
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+        #suggestionText {
+            white-space: pre-wrap; /* Preserve formatting from LLM */
+        }
+        #errorMessage {
+            background-color: #fee2e2; /* Light red for error */
+            border: 1px solid #fca5a5; /* Red border */
+            color: #c53030; /* Darker red text */
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 20px;
+            text-align: center;
+            width: 100%;
+        }
+        .p-small {
+            font-size: 0.85rem;
+            color: #718096; /* Gray-600 */
+            margin-top: 6px;
+        }
+        /* Custom styles for option cards (radio and checkbox) */
+        .option-card {
+            display: flex;
+            align-items: center;
+            background-color: #f8fafc;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .option-card:last-child {
+            margin-bottom: 0;
+        }
+        .option-card:hover {
+            border-color: #a7d9ee;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .option-card input[type="radio"],
+        .option-card input[type="checkbox"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border: 2px solid #9eb5ce; /* Default border color */
+            border-radius: 50%; /* For radio */
+            margin-right: 15px;
+            position: relative;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s ease-in-out;
+        }
+        /* Checkbox specific styles */
+        .option-card input[type="checkbox"] {
+            border-radius: 6px; /* Square corners for checkbox */
+        }
+        .option-card input[type="radio"]:checked,
+        .option-card input[type="checkbox"]:checked {
+            background-color: #4299e1; /* Blue fill when checked */
+            border-color: #4299e1;
+        }
+        .option-card input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: white;
+            transform: translate(-50%, -50%);
+        }
+        .option-card input[type="checkbox"]:checked::after {
+            content: '✔'; /* Checkmark for checkbox */
+            font-size: 16px;
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            line-height: 1; /* Adjust line-height for proper centering of checkmark */
+        }
+        .option-card span {
+            font-size: 1.05rem;
+            color: #2d3748;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-4xl font-bold text-center mb-8">Dinner Decider 🤔</h1>
+
+        <div class="w-full">
+            <!-- New Question Step 1: Meal Type -->
+            <div id="step-meal-type" class="question-step active">
+                <label class="text-lg mb-4 block">What kind of recipe are you looking for?</label>
+                <div class="space-y-3">
+                    <label class="option-card">
+                        <input type="radio" name="meal-type" value="dinner" checked>
+                        <span>Dinner / Main Course</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="radio" name="meal-type" value="dessert">
+                        <span>Puddings / Desserts</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Question Step 2: Budget (Radio Buttons) -->
+            <div id="step-budget" class="question-step">
+                <label class="text-lg mb-4 block">What's your budget for this recipe?</label>
+                <div class="space-y-3">
+                    <label class="option-card">
+                        <input type="radio" name="budget" value="low" checked>
+                        <span>Low (£) - Budget-friendly, simple ingredients</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="radio" name="budget" value="medium">
+                        <span>Medium (££) - Everyday meals, good variety</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="radio" name="budget" value="high">
+                        <span>High (£££) - Special occasion, gourmet options</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Question Step 3: Number of People -->
+            <div id="step-people" class="question-step">
+                <label for="people" class="text-lg">How many people are you cooking for?</label>
+                <input type="number" id="people" min="1" value="1" class="mt-2">
+            </div>
+
+            <!-- Question Step 4: Ingredients on Hand -->
+            <div id="step-ingredients" class="question-step">
+                <label for="ingredients" class="text-lg">What specific ingredients do you currently have on hand?</label>
+                <textarea id="ingredients" rows="4" class="mt-2" placeholder="e.g., chicken breast, rice, broccoli, canned tomatoes, pasta, apples, chocolate chips. Be specific!"></textarea>
+                <p class="p-small">The more specific you are, the better the suggestions will be!</p>
+            </div>
+
+            <!-- New Question Step 5: Basic Ingredients -->
+            <div id="step-basic-ingredients" class="question-step">
+                <label class="text-lg mb-4 block">Do you have these basic kitchen staples?</label>
+                <div class="space-y-3">
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="cooking oil/butter" checked>
+                        <span>Cooking oil / Butter</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="salt" checked>
+                        <span>Salt</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="pepper" checked>
+                        <span>Pepper</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="sugar">
+                        <span>Sugar</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="flour">
+                        <span>Flour</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="eggs">
+                        <span>Eggs</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="basic-ingredients" value="milk">
+                        <span>Milk</span>
+                    </label>
+                </div>
+                <p class="p-small mt-3">Select all that you have available.</p>
+            </div>
+
+            <!-- Question Step 6: Dietary Needs (Checkboxes) -->
+            <div id="step-dietary" class="question-step">
+                <label class="text-lg mb-4 block">Any specific dietary needs or restrictions?</label>
+                <div class="space-y-3">
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="none" checked>
+                        <span>None</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="vegetarian">
+                        <span>Vegetarian</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="vegan">
+                        <span>Vegan</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="gluten-free">
+                        <span>Gluten-Free</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="dairy-free">
+                        <span>Dairy-Free</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="nut-allergy">
+                        <span>Nut Allergy</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="shellfish-allergy">
+                        <span>Shellfish Allergy</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="kosher">
+                        <span>Kosher</span>
+                    </label>
+                    <label class="option-card">
+                        <input type="checkbox" name="dietary-needs" value="halal">
+                        <span>Halal</span>
+                    </label>
+                </div>
+                <p class="p-small mt-3">Select all that apply.</p>
+            </div>
+
+            <div class="navigation-buttons">
+                <button id="prevBtn" class="btn btn-secondary" style="display: none;">← Previous</button>
+                <button id="nextBtn" class="btn btn-primary flex items-center justify-center gap-3">
+                    Next
+                    <span id="loadingSpinner" class="hidden loading-spinner"></span>
+                </button>
+            </div>
+
+
+            <div id="suggestionOutput" class="hidden">
+                <h2 class="text-3xl font-bold mb-3">Your Recipe Suggestion:</h2>
+                <p id="suggestionText"></p>
+                <button id="startOverBtn" class="btn-primary mt-8">Start Over</button>
+            </div>
+             <div id="errorMessage" class="hidden">
+                Oops! Something went wrong while fetching your recipe idea. Please check your internet connection or try again later.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Define the order of questions and their corresponding HTML element IDs
+        const questions = [
+            { id: 'mealType', elementId: 'step-meal-type' },
+            { id: 'budget', elementId: 'step-budget' },
+            { id: 'people', elementId: 'step-people' },
+            { id: 'ingredients', elementId: 'step-ingredients' },
+            { id: 'basicIngredients', elementId: 'step-basic-ingredients' }, // New step
+            { id: 'dietary', elementId: 'step-dietary' }
+        ];
+
+        let currentStepIndex = 0;
+        let userResponses = {}; // Store user's answers
+
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const suggestionOutput = document.getElementById('suggestionOutput');
+        const suggestionText = document.getElementById('suggestionText');
+        const errorMessage = document.getElementById('errorMessage');
+        const startOverBtn = document.getElementById('startOverBtn');
+
+        /**
+         * Displays the current question step based on the currentStepIndex.
+         * Hides all other question steps and updates button visibility/text.
+         */
+        function displayCurrentQuestion() {
+            // Hide all question steps
+            document.querySelectorAll('.question-step').forEach(step => {
+                step.classList.remove('active');
+            });
+
+            // Show the current question step
+            const currentQuestionElement = document.getElementById(questions[currentStepIndex].elementId);
+            currentQuestionElement.classList.add('active');
+
+            // Update button visibility
+            prevBtn.style.display = currentStepIndex > 0 ? 'block' : 'none';
+
+            // Change next button text based on whether it's the last step
+            if (currentStepIndex === questions.length - 1) {
+                nextBtn.textContent = 'Get Recipe Idea';
+            } else {
+                nextBtn.textContent = 'Next →';
+            }
+
+            // Hide suggestion and error messages when navigating questions
+            suggestionOutput.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            nextBtn.style.display = 'flex'; // Ensure next button is visible during steps
+            prevBtn.style.display = currentStepIndex > 0 ? 'block' : 'none'; // Ensure prev button visibility
+        }
+
+        /**
+         * Handles the click event for the "Next" button.
+         * Saves the current input, moves to the next step, or fetches the suggestion.
+         */
+        nextBtn.addEventListener('click', async () => {
+            const currentQuestionId = questions[currentStepIndex].id;
+            let value;
+
+            // Get value based on input type
+            if (currentQuestionId === 'mealType') {
+                const selectedMealTypeRadio = document.querySelector('input[name="meal-type"]:checked');
+                value = selectedMealTypeRadio ? selectedMealTypeRadio.value : '';
+            } else if (currentQuestionId === 'budget') {
+                const selectedBudgetRadio = document.querySelector('input[name="budget"]:checked');
+                value = selectedBudgetRadio ? selectedBudgetRadio.value : '';
+            } else if (currentQuestionId === 'people') {
+                value = document.getElementById('people').value;
+            } else if (currentQuestionId === 'ingredients') {
+                value = document.getElementById('ingredients').value.trim();
+            } else if (currentQuestionId === 'basicIngredients') {
+                const checkedBasicIngredients = document.querySelectorAll('input[name="basic-ingredients"]:checked');
+                value = Array.from(checkedBasicIngredients).map(checkbox => checkbox.value);
+            } else if (currentQuestionId === 'dietary') {
+                const checkedDietaryCheckboxes = document.querySelectorAll('input[name="dietary-needs"]:checked');
+                let selectedDietaryNeeds = Array.from(checkedDietaryCheckboxes).map(checkbox => checkbox.value);
+
+                if (selectedDietaryNeeds.length > 1 && selectedDietaryNeeds.includes('none')) {
+                    selectedDietaryNeeds = selectedDietaryNeeds.filter(opt => opt !== 'none');
+                } else if (selectedDietaryNeeds.length === 0) {
+                    selectedDietaryNeeds = ['none'];
+                }
+                value = selectedDietaryNeeds;
+            }
+            userResponses[currentQuestionId] = value; // Store the response
+
+            // If not the last step, move to next question
+            if (currentStepIndex < questions.length - 1) {
+                currentStepIndex++;
+                displayCurrentQuestion();
+            } else {
+                // If it's the last step, fetch dinner suggestion
+                loadingSpinner.classList.remove('hidden');
+                nextBtn.disabled = true;
+                prevBtn.disabled = true;
+                nextBtn.innerHTML = `Generating... <span id="loadingSpinner" class="loading-spinner"></span>`;
+                suggestionOutput.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+                suggestionText.textContent = '';
+
+                // Construct a detailed prompt for the LLM
+                let prompt = `Suggest ONE ${userResponses.mealType} idea and a detailed recipe based on the following criteria.
+                Crucially, you MUST ONLY use the ingredients listed and STRICTLY adhere to all dietary needs.
+                Provide all quantities in metric units (grams, milliliters, liters) where appropriate.
+                If a dietary need or ingredient list makes a common recipe impossible, explain why and suggest the closest possible alternative or a very simple dish.`;
+                prompt += `\n\n**User Preferences:**\n`;
+                prompt += `- Meal Type: ${userResponses.mealType}\n`;
+                prompt += `- Budget: ${userResponses.budget}\n`;
+                prompt += `- Number of people: ${userResponses.people}\n`;
+
+                if (userResponses.ingredients && userResponses.ingredients !== '') {
+                    prompt += `- Specific ingredients on hand: ${userResponses.ingredients}. YOU MUST ONLY USE THESE INGREDIENTS.\n`;
+                } else {
+                    prompt += `- No specific ingredients on hand. Suggest something creative and easy to source within the budget.\n`;
+                }
+
+                if (userResponses.basicIngredients && userResponses.basicIngredients.length > 0) {
+                    prompt += `- Assumed basic ingredients available: ${userResponses.basicIngredients.join(', ')}. You can use these freely.\n`;
+                } else {
+                    prompt += `- No basic ingredients assumed available (apart from water). \n`;
+                }
+
+
+                if (userResponses.dietary.length > 0 && !(userResponses.dietary.length === 1 && userResponses.dietary.includes('none'))) {
+                    prompt += `- Dietary needs: ${userResponses.dietary.join(', ')}. YOU MUST STRICTLY ADHERE TO THESE NEEDS.\n`;
+                } else {
+                    prompt += `- No specific dietary needs.\n`;
+                }
+                prompt += `\n**Recipe Format:**\n`;
+                prompt += `Please provide the recipe in a clear, easy-to-follow Markdown format, including:\n`;
+                prompt += `## Dish Name\n`;
+                prompt += `### Ingredients\n`;
+                prompt += `- List of ingredients with suggested quantities in **metric units** (e.g., "250g chicken breast", "200ml milk", "1 liter water").\n`;
+                prompt += `### Instructions\n`;
+                prompt += `1. Step-by-step cooking instructions.\n`;
+                prompt += `### Estimated Times\n`;
+                prompt += `- Prep Time: [e.g., 15 minutes]\n`;
+                prompt += `- Cook Time: [e.g., 30 minutes]\n`;
+                prompt += `\nEnsure the recipe is practical for home cooking and appealing.`;
+
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // Canvas will automatically provide the API key
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        suggestionText.innerHTML = marked.parse(text); // Using markdown library
+                        suggestionOutput.classList.remove('hidden');
+                    } else {
+                        errorMessage.classList.remove('hidden');
+                        console.error('Unexpected API response structure:', result);
+                    }
+                } catch (error) {
+                    errorMessage.classList.remove('hidden');
+                    console.error('Error fetching dinner suggestion:', error);
+                } finally {
+                    loadingSpinner.classList.add('hidden');
+                    nextBtn.disabled = false;
+                    prevBtn.disabled = false;
+                    nextBtn.innerHTML = `Get Recipe Idea`; // Reset button text
+                    // Hide question steps and navigation buttons after suggestion is shown
+                    document.querySelectorAll('.question-step').forEach(step => {
+                        step.classList.remove('active');
+                    });
+                    nextBtn.style.display = 'none';
+                    prevBtn.style.display = 'none';
+                }
+            }
+        });
+
+        /**
+         * Handles the click event for the "Previous" button.
+         * Moves to the previous question step.
+         */
+        prevBtn.addEventListener('click', () => {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                displayCurrentQuestion();
+            }
+        });
+
+        /**
+         * Resets the app to its initial state, displaying the first question.
+         */
+        startOverBtn.addEventListener('click', () => {
+            currentStepIndex = 0;
+            userResponses = {};
+            suggestionOutput.classList.add('hidden');
+            errorMessage.classList.add('hidden');
+            suggestionText.textContent = '';
+            // Reset input fields
+            document.getElementById('ingredients').value = '';
+            document.getElementById('people').value = 1;
+
+            // Reset meal type radio buttons
+            document.querySelector('input[name="meal-type"][value="dinner"]').checked = true;
+            // Reset budget radio buttons
+            document.querySelector('input[name="budget"][value="low"]').checked = true;
+            // Reset basic ingredients checkboxes: check defaults
+            document.querySelectorAll('input[name="basic-ingredients"]').forEach(checkbox => {
+                checkbox.checked = (checkbox.value === 'cooking oil/butter' || checkbox.value === 'salt' || checkbox.value === 'pepper');
+            });
+            // Reset dietary checkboxes: check 'None' and uncheck others
+            document.querySelectorAll('input[name="dietary-needs"]').forEach(checkbox => {
+                checkbox.checked = (checkbox.value === 'none');
+            });
+
+            displayCurrentQuestion(); // Display the first question
+        });
+
+        // Initialize the app by displaying the first question
+        displayCurrentQuestion();
+    </script>
+    <!-- Marked.js for Markdown to HTML conversion (for cleaner recipe output) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</body>
+</html>
